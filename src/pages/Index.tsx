@@ -45,8 +45,8 @@ const Index = () => {
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
                   <img 
-                    src="/logo.png" 
-                    alt="SageChain Logo" 
+                    src="/uploads/logo.png" 
+                    alt="ViteChain Logo" 
                     className="w-full h-full object-contain"
                   />
                 </div>

@@ -1,4 +1,3 @@
-
 import { ChatRequest, ChatResponse } from './types.ts';
 import { validateRequest, createErrorResponse, corsHeaders } from './utils.ts';
 import { GeminiService } from './gemini.ts';
@@ -14,7 +13,7 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
     const { message, intent } = validateRequest(body);
 
     // Get Gemini API key
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    const geminiApiKey = process.env.GEMINI_API_KEY;
     if (!geminiApiKey) {
       console.error('Gemini API key not configured');
       return createErrorResponse('AI service is temporarily unavailable');
@@ -22,10 +21,7 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
 
     // Generate streaming AI response
     const geminiService = new GeminiService(geminiApiKey);
-    const stream = await geminiService.generateStreamingResponse(
-      message ?? '',
-      intent ?? ''
-    );
+    const stream = await geminiService.generateStreamingResponse(message ?? '', intent ?? '');
 
     console.log('Gemini streaming response initiated');
 
