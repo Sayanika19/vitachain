@@ -1,4 +1,4 @@
-
+// @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0'
 
 const corsHeaders = {
@@ -12,6 +12,17 @@ interface BlockchainRequest {
   dataType: 'balance' | 'tokens' | 'transactions' | 'nfts';
 }
 
+type Transaction = {
+  hash: string;
+  type: 'buy' | 'sell' | 'swap';
+  from_token: string;
+  to_token: string;
+  amount: string;
+  price_usd: string;
+  timestamp: string;
+};
+
+// @ts-ignore
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -28,9 +39,16 @@ Deno.serve(async (req) => {
     }
 
     // Initialize Supabase client
+    const supabaseUrl = (typeof process !== "undefined" && process.env?.SUPABASE_URL) 
+      ? process.env.SUPABASE_URL 
+      : (globalThis?.Deno?.env?.get('SUPABASE_URL') ?? '');
+    const supabaseAnonKey = (typeof process !== "undefined" && process.env?.SUPABASE_ANON_KEY) 
+      ? process.env.SUPABASE_ANON_KEY 
+      : (globalThis?.Deno?.env?.get('SUPABASE_ANON_KEY') ?? '');
+
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      supabaseUrl,
+      supabaseAnonKey,
       { global: { headers: { Authorization: authHeader } } }
     );
 
@@ -122,7 +140,7 @@ Deno.serve(async (req) => {
 
     // Generate realistic transaction history for other wallets
     const generateTransactionHistory = () => {
-      const transactions = [];
+      const transactions: Transaction[] = [];
       const now = new Date();
       
       // Generate transactions over the last 6 months
@@ -133,7 +151,7 @@ Deno.serve(async (req) => {
         const types = ['buy', 'sell', 'swap'];
         const type = types[Math.floor(Math.random() * types.length)];
         
-        let transaction;
+        let transaction: Transaction;
         if (type === 'buy') {
           transaction = {
             hash: `0x${Math.random().toString(16).substr(2, 8)}...${Math.random().toString(16).substr(2, 3)}`,
@@ -165,11 +183,11 @@ Deno.serve(async (req) => {
             timestamp: timestamp.toISOString()
           };
         }
-        
+
         transactions.push(transaction);
       }
-      
-      return transactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      return transactions.sort((a: Transaction, b: Transaction) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     };
 
     // Mock blockchain data with realistic values for P&L calculation

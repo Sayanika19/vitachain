@@ -19,7 +19,7 @@ const AIChat = () => {
   } = useAIChat();
 
   const suggestedActions = [
-    "Check my portfolio balance",
+    "Who created Bitcoin?",
     "What's the safest DeFi protocol?", 
     "How do I stake 100 MATIC?",
     "Explain yield farming risks"

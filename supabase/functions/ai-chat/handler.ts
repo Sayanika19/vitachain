@@ -22,7 +22,10 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
 
     // Generate streaming AI response
     const geminiService = new GeminiService(geminiApiKey);
-    const stream = await geminiService.generateStreamingResponse(message, intent);
+    const stream = await geminiService.generateStreamingResponse(
+      message ?? '',
+      intent ?? ''
+    );
 
     console.log('Gemini streaming response initiated');
 

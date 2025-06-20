@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +45,7 @@ const Index = () => {
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
                   <img 
-                    src="/lovable-uploads/819d1bc0-5b06-442d-ad39-cd9dedeee874.png" 
+                    src="/logo.png" 
                     alt="SageChain Logo" 
                     className="w-full h-full object-contain"
                   />
