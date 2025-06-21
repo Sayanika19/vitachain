@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, Eye, EyeOff } from "lucide-react";
+import { TrendingUp, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { WalletData } from "../WalletConnector";
@@ -10,9 +10,18 @@ import { WalletData } from "../WalletConnector";
 interface AssetTrackingProps {
   isConnected: boolean;
   walletData?: WalletData | null;
+  ethPrice?: number;
+  ethPriceChange24h?: number;
+  isLoadingPrices?: boolean;
 }
 
-const AssetTracking = ({ isConnected, walletData }: AssetTrackingProps) => {
+const AssetTracking = ({ 
+  isConnected, 
+  walletData, 
+  ethPrice = 0, 
+  ethPriceChange24h = 0, 
+  isLoadingPrices = false 
+}: AssetTrackingProps) => {
   const [hideBalances, setHideBalances] = useState(false);
   const [portfolioValue, setPortfolioValue] = useState(0);
   const [ethAmount, setEthAmount] = useState(0);
@@ -21,8 +30,8 @@ const AssetTracking = ({ isConnected, walletData }: AssetTrackingProps) => {
     if (isConnected && walletData?.balance) {
       // Extract ETH amount from balance string
       const amount = parseFloat(walletData.balance.replace(' ETH', ''));
-      const ethPrice = 2000;
-      const totalValue = amount * ethPrice;
+      const currentEthPrice = ethPrice > 0 ? ethPrice : 2000; // Fallback to default if no real-time price
+      const totalValue = amount * currentEthPrice;
       
       setEthAmount(amount);
       setPortfolioValue(totalValue);
@@ -30,7 +39,7 @@ const AssetTracking = ({ isConnected, walletData }: AssetTrackingProps) => {
       setEthAmount(0);
       setPortfolioValue(0);
     }
-  }, [isConnected, walletData?.balance]);
+  }, [isConnected, walletData?.balance, ethPrice]);
 
   const formatValue = (value: number) => {
     if (hideBalances) return '****';
@@ -40,6 +49,10 @@ const AssetTracking = ({ isConnected, walletData }: AssetTrackingProps) => {
   const formatBalance = (balance: number, symbol: string) => {
     if (hideBalances) return '****';
     return `${balance.toFixed(4)} ${symbol}`;
+  };
+
+  const formatPrice = (price: number) => {
+    return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   if (!isConnected) {
@@ -66,28 +79,43 @@ const AssetTracking = ({ isConnected, walletData }: AssetTrackingProps) => {
               🔎 Asset Tracking
             </CardTitle>
             <CardDescription className="text-purple-300">
-              Your crypto holdings from MetaMask wallet
+              Your crypto holdings from MetaMask wallet with real-time prices
             </CardDescription>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setHideBalances(!hideBalances)}
-            className="text-purple-300 hover:text-white"
-          >
-            {hideBalances ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </Button>
+          <div className="flex items-center space-x-2">
+            {isLoadingPrices && <RefreshCw className="w-4 h-4 text-purple-400 animate-spin" />}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setHideBalances(!hideBalances)}
+              className="text-purple-300 hover:text-white"
+            >
+              {hideBalances ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
         {/* Total Net Worth */}
         <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-lg border border-purple-800/30">
           <div className="text-center">
-            <p className="text-sm text-purple-300 mb-1">Total Net Worth</p>
+            <p className="text-sm text-purple-300 mb-1">Total Net Worth (Real-Time)</p>
             <p className="text-3xl font-bold text-white">{formatValue(portfolioValue)}</p>
-            <div className="flex items-center justify-center mt-2">
-              <TrendingUp className="w-4 h-4 text-green-400 mr-1" />
-              <span className="text-green-400 text-sm">Live MetaMask Data</span>
+            <div className="flex items-center justify-center mt-2 space-x-4">
+              <div className="flex items-center">
+                <TrendingUp className="w-4 h-4 text-green-400 mr-1" />
+                <span className="text-green-400 text-sm">Live MetaMask Data</span>
+              </div>
+              {ethPrice > 0 && (
+                <div className="flex items-center">
+                  <span className="text-purple-300 text-sm">ETH: {formatPrice(ethPrice)}</span>
+                  {ethPriceChange24h !== 0 && (
+                    <span className={`text-xs ml-1 ${ethPriceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      ({ethPriceChange24h >= 0 ? '+' : ''}{ethPriceChange24h.toFixed(2)}%)
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -104,6 +132,7 @@ const AssetTracking = ({ isConnected, walletData }: AssetTrackingProps) => {
                     <Badge variant="outline" className="border-purple-600 text-purple-300 text-xs">
                       Ethereum
                     </Badge>
+                    {isLoadingPrices && <RefreshCw className="w-3 h-3 text-purple-400 animate-spin" />}
                   </div>
                   <div className="text-sm text-purple-300">Ethereum</div>
                 </div>
@@ -112,7 +141,9 @@ const AssetTracking = ({ isConnected, walletData }: AssetTrackingProps) => {
               <div className="text-right flex-1 max-w-xs">
                 <div className="text-white font-medium">{formatValue(portfolioValue)}</div>
                 <div className="text-sm text-slate-400">{formatBalance(ethAmount, 'ETH')}</div>
-                <div className="text-xs text-slate-500">$2,000</div>
+                <div className="text-xs text-slate-500">
+                  {ethPrice > 0 ? formatPrice(ethPrice) : '$2,000.00'}
+                </div>
               </div>
               
               <div className="text-right min-w-[80px]">
@@ -124,12 +155,22 @@ const AssetTracking = ({ isConnected, walletData }: AssetTrackingProps) => {
                   <Progress value={100} className="w-16 h-1" />
                   <span className="text-xs text-slate-400">100%</span>
                 </div>
+                {ethPriceChange24h !== 0 && (
+                  <div className={`text-xs mt-1 ${ethPriceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {ethPriceChange24h >= 0 ? '+' : ''}{ethPriceChange24h.toFixed(2)}%
+                  </div>
+                )}
               </div>
             </div>
           ) : (
             <div className="text-center py-8">
               <p className="text-purple-300">No ETH balance found in connected MetaMask wallet</p>
               <p className="text-sm text-slate-400 mt-2">Current balance: {walletData?.balance || '0.0000 ETH'}</p>
+              {ethPrice > 0 && (
+                <p className="text-xs text-purple-300 mt-1">
+                  Current ETH price: {formatPrice(ethPrice)}
+                </p>
+              )}
             </div>
           )}
         </div>

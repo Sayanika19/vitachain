@@ -152,10 +152,12 @@ const Index = () => {
               {activeTab === 'settings' && <SettingsPanel />}
             </div>
 
-            {/* AI Chat Sidebar */}
-            <div className="xl:col-span-1">
-              <AIChat />
-            </div>
+            {/* AI Chat Sidebar - Conditionally render based on wallet connection */}
+            {(isWalletConnected || activeTab !== 'portfolio') && (
+              <div className="xl:col-span-1">
+                <AIChat />
+              </div>
+            )}
           </div>
         )}
       </div>

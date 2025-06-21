@@ -1,14 +1,15 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Wallet, DollarSign, PieChart, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, DollarSign, PieChart, AlertTriangle, RefreshCw } from "lucide-react";
 import { WalletData } from "./WalletConnector";
 import AssetAllocationChart from "./AssetAllocationChart";
 import AssetTracking from "./portfolio/AssetTracking";
 import PerformanceMetrics from "./portfolio/PerformanceMetrics";
 import TransactionHistory from "./portfolio/TransactionHistory";
 import InvestmentPositions from "./portfolio/InvestmentPositions";
+import RealTimePriceDisplay from "./portfolio/RealTimePriceDisplay";
 import { useEffect, useState } from "react";
+import { useEthPrice } from "@/hooks/useRealTimePrices";
 
 interface PortfolioOverviewProps {
   isConnected: boolean;
@@ -19,33 +20,40 @@ const PortfolioOverview = ({ isConnected, walletData }: PortfolioOverviewProps) 
   const [portfolioValue, setPortfolioValue] = useState(0);
   const [dailyChange, setDailyChange] = useState(0);
   const [changePercent, setChangePercent] = useState(0);
+  
+  // Use the new real-time price hook
+  const { ethPrice, ethPriceChange24h, isLoading: isLoadingPrices, lastUpdated } = useEthPrice(30000);
 
   useEffect(() => {
-    if (isConnected && walletData?.balance) {
-      // Extract ETH amount from balance string (e.g., "0.0000 ETH")
+    if (isConnected && walletData?.balance && ethPrice > 0) {
+      // Calculate portfolio value with real-time ETH price
       const ethAmount = parseFloat(walletData.balance.replace(' ETH', ''));
-      const ethPrice = 2000; // Current ETH price
       const currentValue = ethAmount * ethPrice;
       
       setPortfolioValue(currentValue);
       
-      // Only show positive change for wallets with actual value
+      // Calculate daily change based on ETH price change
       if (currentValue > 0) {
-        const marketChange = currentValue * 0.001; // 0.1% change
+        const marketChange = currentValue * (ethPriceChange24h / 100);
         setDailyChange(marketChange);
-        setChangePercent(0.1);
+        setChangePercent(ethPriceChange24h);
       } else {
         setDailyChange(0);
         setChangePercent(0);
       }
       
-      console.log('Real-time portfolio value from MetaMask wallet:', currentValue);
-    } else {
+      console.log('Real-time portfolio value updated:', {
+        ethPrice,
+        ethAmount,
+        portfolioValue: currentValue,
+        priceChange24h: ethPriceChange24h
+      });
+    } else if (!isConnected || !walletData?.balance) {
       setPortfolioValue(0);
       setDailyChange(0);
       setChangePercent(0);
     }
-  }, [isConnected, walletData?.balance]);
+  }, [isConnected, walletData?.balance, ethPrice, ethPriceChange24h]);
 
   const getActiveChains = () => {
     if (!isConnected || portfolioValue === 0) return 0;
@@ -55,6 +63,17 @@ const PortfolioOverview = ({ isConnected, walletData }: PortfolioOverviewProps) 
   const getActivePositions = () => {
     if (!isConnected || portfolioValue === 0) return 0;
     return portfolioValue > 0 ? 1 : 0;
+  };
+
+  const formatLastUpdated = () => {
+    if (!lastUpdated) return 'Never';
+    const now = new Date();
+    const diffMs = now.getTime() - lastUpdated.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    
+    if (diffSecs < 60) return `${diffSecs}s ago`;
+    if (diffSecs < 3600) return `${Math.floor(diffSecs / 60)}m ago`;
+    return `${Math.floor(diffSecs / 3600)}h ago`;
   };
 
   if (!isConnected) {
@@ -75,20 +94,30 @@ const PortfolioOverview = ({ isConnected, walletData }: PortfolioOverviewProps) 
 
   return (
     <div className="space-y-6">
+      {/* Real-time Price Display */}
+      <RealTimePriceDisplay />
+
       {/* Wallet Info Header */}
       {walletData && (
         <Card className="bg-black/40 border-purple-800/30 backdrop-blur-xl">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <p className="text-sm text-purple-300">Connected Wallet (Real-Time)</p>
-                <p className="text-white font-mono">{walletData.address}</p>
+                <p className="text-sm text-purple-300">Wallet Address</p>
+                <p className="text-white font-mono break-all">{walletData.address}</p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-purple-300">Live Balance</p>
+              <div>
+                <p className="text-sm text-purple-300">ETH Balance</p>
                 <p className="text-white font-medium">{walletData.balance}</p>
               </div>
+              <div>
+                <p className="text-sm text-purple-300">Portfolio Value</p>
+                <p className="text-white font-medium">
+                  ${portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
             </div>
+            <div className="text-xs text-gray-400 mt-2">Updated: {formatLastUpdated()}</div>
           </CardContent>
         </Card>
       )}
@@ -97,7 +126,10 @@ const PortfolioOverview = ({ isConnected, walletData }: PortfolioOverviewProps) 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="bg-black/40 border-purple-800/30 backdrop-blur-xl">
           <CardHeader className="pb-2">
-            <CardDescription className="text-purple-300">Total Portfolio Value (Real-Time)</CardDescription>
+            <div className="flex items-center justify-between">
+              <CardDescription className="text-purple-300">Total Portfolio Value (Real-Time)</CardDescription>
+              {isLoadingPrices && <RefreshCw className="w-4 h-4 text-purple-400 animate-spin" />}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
@@ -115,6 +147,7 @@ const PortfolioOverview = ({ isConnected, walletData }: PortfolioOverviewProps) 
                     </>
                   )}
                 </div>
+                <div className="text-xs text-gray-400 mt-1">Live ETH Price: ${ethPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
               </div>
               <DollarSign className="w-8 h-8 text-green-400" />
             </div>
@@ -157,7 +190,13 @@ const PortfolioOverview = ({ isConnected, walletData }: PortfolioOverviewProps) 
       </div>
 
       {/* Real-time Asset Tracking */}
-      <AssetTracking isConnected={isConnected} walletData={walletData} />
+      <AssetTracking 
+        isConnected={isConnected} 
+        walletData={walletData} 
+        ethPrice={ethPrice}
+        ethPriceChange24h={ethPriceChange24h}
+        isLoadingPrices={isLoadingPrices}
+      />
 
       {/* Asset Allocation Chart */}
       <AssetAllocationChart walletData={walletData} isConnected={isConnected} />
@@ -198,13 +237,46 @@ const PortfolioOverview = ({ isConnected, walletData }: PortfolioOverviewProps) 
             ) : (
               <div className="flex items-center justify-between p-3 bg-blue-900/20 rounded-lg border border-blue-800/30">
                 <div className="flex items-center space-x-3">
-                  <TrendingUp className="w-4 h-4 text-blue-400" />
+                  <TrendingUp className="w-4 h-4 text-green-400" />
                   <div>
-                    <div className="text-white text-sm font-medium">Live MetaMask Data Active</div>
-                    <div className="text-blue-300 text-xs">Portfolio values updating from connected MetaMask wallet</div>
+                    <div className="text-white text-sm font-medium">Portfolio Active</div>
+                    <div className="text-green-300 text-xs">
+                      Real-time value: ${portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
                   </div>
                 </div>
-                <Badge variant="outline" className="border-blue-600 text-blue-300">
+                <Badge variant="outline" className="border-green-600 text-green-300">
+                  Live
+                </Badge>
+              </div>
+            )}
+            
+            {ethPriceChange24h !== 0 && (
+              <div className={`flex items-center justify-between p-3 rounded-lg border ${
+                ethPriceChange24h >= 0 
+                  ? 'bg-green-900/20 border-green-800/30' 
+                  : 'bg-red-900/20 border-red-800/30'
+              }`}>
+                <div className="flex items-center space-x-3">
+                  {ethPriceChange24h >= 0 ? (
+                    <TrendingUp className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 text-red-400" />
+                  )}
+                  <div>
+                    <div className="text-white text-sm font-medium">ETH Price Movement</div>
+                    <div className={`text-xs ${
+                      ethPriceChange24h >= 0 ? 'text-green-300' : 'text-red-300'
+                    }`}>
+                      {ethPriceChange24h >= 0 ? '+' : ''}{ethPriceChange24h.toFixed(2)}% in 24h
+                    </div>
+                  </div>
+                </div>
+                <Badge variant="outline" className={`${
+                  ethPriceChange24h >= 0 
+                    ? 'border-green-600 text-green-300' 
+                    : 'border-red-600 text-red-300'
+                }`}>
                   Live
                 </Badge>
               </div>

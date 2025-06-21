@@ -14,6 +14,7 @@ import {
 import PerformanceStatsCards from "./PerformanceStatsCards";
 import PortfolioPerformanceChart from "./PortfolioPerformanceChart";
 import PnLBreakdownChart from "./PnLBreakdownChart";
+import { useEthPrice } from "@/hooks/useRealTimePrices";
 
 interface PerformanceMetricsProps {
   isConnected: boolean;
@@ -27,6 +28,9 @@ const PerformanceMetrics = ({ isConnected, walletData }: PerformanceMetricsProps
   const [apy, setAPY] = useState(0);
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
   const [pnlData, setPnlData] = useState<PnLBreakdownData[]>([]);
+  
+  // Use the new real-time price hook
+  const { ethPrice, ethPriceChange24h, isLoading: isLoadingPrices } = useEthPrice(30000);
 
   useEffect(() => {
     if (isConnected && walletData?.address) {
@@ -41,15 +45,23 @@ const PerformanceMetrics = ({ isConnected, walletData }: PerformanceMetricsProps
     if (data.transactions?.transactions && data.balance?.total_value_usd) {
       processWalletData();
     }
-  }, [data.transactions, data.balance, data.tokens]);
+  }, [data.transactions, data.balance, data.tokens, ethPrice]);
 
   const processWalletData = () => {
     const transactions = data.transactions?.transactions || [];
-    const currentValue = parseFloat(data.balance?.total_value_usd || '0');
+    let currentValue = parseFloat(data.balance?.total_value_usd || '0');
     
-    console.log('Processing wallet data:', {
+    // Use real-time ETH price if available and wallet has ETH
+    if (ethPrice > 0 && walletData?.balance) {
+      const ethAmount = parseFloat(walletData.balance.replace(' ETH', ''));
+      const realTimeValue = ethAmount * ethPrice;
+      currentValue = realTimeValue; // Override with real-time calculation
+    }
+    
+    console.log('Processing wallet data with real-time prices:', {
       transactionCount: transactions.length,
       currentValue,
+      ethPrice,
       sampleTransaction: transactions[0]
     });
 
@@ -76,7 +88,14 @@ const PerformanceMetrics = ({ isConnected, walletData }: PerformanceMetricsProps
     const { totalPnL: pnl, totalROI: roi, totalCostBasis } = calculateRealPnLFromWallet(transactions, currentValue);
     const calculatedAPY = calculateAPYFromTransactions(transactions, roi);
     
-    console.log('Calculated metrics:', { pnl, roi, calculatedAPY, totalCostBasis });
+    console.log('Calculated metrics with real-time data:', { 
+      pnl, 
+      roi, 
+      calculatedAPY, 
+      totalCostBasis,
+      currentValue,
+      ethPrice 
+    });
     
     setTotalPnL(pnl);
     setTotalROI(roi);
@@ -88,7 +107,7 @@ const PerformanceMetrics = ({ isConnected, walletData }: PerformanceMetricsProps
     const pnlBreakdown = generateRealPnLBreakdown(transactions, currentValue, totalCostBasis);
     setPnlData(pnlBreakdown);
 
-    console.log('Updated portfolio metrics from real wallet data');
+    console.log('Updated portfolio metrics from real wallet data with live prices');
   };
 
   if (!isConnected) {
@@ -106,7 +125,7 @@ const PerformanceMetrics = ({ isConnected, walletData }: PerformanceMetricsProps
     );
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingPrices) {
     return (
       <Card className="bg-black/40 border-purple-800/30 backdrop-blur-xl">
         <CardHeader>
@@ -130,6 +149,8 @@ const PerformanceMetrics = ({ isConnected, walletData }: PerformanceMetricsProps
         totalROI={totalROI}
         apy={apy}
         hasTransactions={hasTransactions}
+        ethPrice={ethPrice}
+        isLoadingPrices={isLoadingPrices}
       />
 
       <PortfolioPerformanceChart 
