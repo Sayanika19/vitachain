@@ -69,7 +69,7 @@ const Auth = () => {
               <Brain className="w-8 h-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl text-white">Welcome to SageChain</CardTitle>
+          <CardTitle className="text-2xl text-white">Welcome to VitaChain</CardTitle>
           <CardDescription className="text-purple-300">
             Your DeFi AI assistant platform
           </CardDescription>

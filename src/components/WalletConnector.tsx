@@ -421,7 +421,7 @@ const WalletConnector = ({ isConnected, onConnect, onDisconnect }: WalletConnect
         <DialogHeader>
           <DialogTitle className="text-white">Connect Your Wallet</DialogTitle>
           <DialogDescription className="text-purple-300">
-            Choose your preferred wallet to connect to SageChain
+            Choose your preferred wallet to connect to VitaChain
           </DialogDescription>
         </DialogHeader>
         

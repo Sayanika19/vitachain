@@ -51,7 +51,7 @@ const Index = () => {
                   />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">SageChain</h1>
+                  <h1 className="text-2xl font-bold text-white">VitaChain</h1>
                 </div>
               </div>
             </div>

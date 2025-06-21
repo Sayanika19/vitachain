@@ -55,7 +55,7 @@ const Dashboard = ({ isConnected, walletData }: DashboardProps) => {
       {/* Welcome Section */}
       <div className="text-center space-y-4">
         <h2 className="text-3xl font-bold text-white">
-          Welcome to SageChain
+          Welcome to VitaChain
           {isConnected && walletData && (
             <span className="block text-lg font-normal text-purple-300 mt-2">
               Connected: {walletData.address.slice(0, 6)}...{walletData.address.slice(-4)}
